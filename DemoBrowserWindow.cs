@@ -83,7 +83,7 @@ namespace GameCreator.Editor.Installs
             Rect title = new Rect(18f, 12f, this.position.width - 36f, 28f);
             GUI.Label(title, "Game Creator Demos", this.titleStyle);
 
-            string summary = this.entries.Count == 1 ? "1 installed demo pack" : $"{this.entries.Count} installed demo packs";
+            string summary = this.entries.Count == 1 ? "1 example item" : $"{this.entries.Count} example items";
             Rect subtitle = new Rect(20f, 42f, this.position.width - 40f, 22f);
             GUI.Label(subtitle, $"{summary} found in Installs", this.subtitleStyle);
         }
@@ -239,9 +239,12 @@ namespace GameCreator.Editor.Installs
 
             foreach (string folder in folders)
             {
-                DemoEntry entry = DemoEntry.Create(folder);
-                this.entries.Add(entry);
-                moduleSet.Add(entry.Module);
+                DemoEntry[] folderEntries = DemoEntry.Create(folder);
+                foreach (DemoEntry entry in folderEntries)
+                {
+                    this.entries.Add(entry);
+                    moduleSet.Add(entry.Module);
+                }
             }
 
             this.entries.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
@@ -270,6 +273,7 @@ namespace GameCreator.Editor.Installs
                 if (!string.IsNullOrEmpty(query) &&
                     entry.DisplayName.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
                     entry.FolderName.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
+                    entry.PackageName.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
                     entry.Module.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     continue;
@@ -371,6 +375,7 @@ namespace GameCreator.Editor.Installs
         {
             public string Path { get; private set; }
             public string FolderName { get; private set; }
+            public string PackageName { get; private set; }
             public string DisplayName { get; private set; }
             public string Module { get; private set; }
             public string Version { get; private set; }
@@ -378,7 +383,7 @@ namespace GameCreator.Editor.Installs
             public string FirstScenePath { get; private set; }
             public string PreviewAssetPath { get; private set; }
 
-            public static DemoEntry Create(string folder)
+            public static DemoEntry[] Create(string folder)
             {
                 string folderName = System.IO.Path.GetFileName(folder);
                 string[] versionParts = folderName.Split('@');
@@ -394,31 +399,80 @@ namespace GameCreator.Editor.Installs
                 string[] textures = FindFiles(folder, "*.png", "*.jpg", "*.jpeg", "*.tga", "*.psd");
                 string[] assets = FindFiles(folder, "*.asset");
 
-                string previewAssetPath = FirstExisting(textures, prefabs, assets, scenes);
-                string summary = BuildSummary(version, scenes.Length, prefabs.Length, assets.Length);
-
-                return new DemoEntry
+                if (scenes.Length == 0)
                 {
-                    Path = folder,
-                    FolderName = folderName,
-                    DisplayName = displayName,
-                    Module = module,
-                    Version = version,
-                    Summary = summary,
-                    FirstScenePath = scenes.Length > 0 ? scenes[0] : string.Empty,
-                    PreviewAssetPath = previewAssetPath
-                };
+                    string previewAssetPath = FirstExisting(textures, prefabs, assets);
+                    string summary = BuildPackSummary(version, prefabs.Length, assets.Length);
+
+                    return new[]
+                    {
+                        new DemoEntry
+                        {
+                            Path = folder,
+                            FolderName = folderName,
+                            PackageName = displayName,
+                            DisplayName = displayName,
+                            Module = module,
+                            Version = version,
+                            Summary = summary,
+                            FirstScenePath = string.Empty,
+                            PreviewAssetPath = previewAssetPath
+                        }
+                    };
+                }
+
+                List<DemoEntry> entries = new List<DemoEntry>();
+                foreach (string scene in scenes)
+                {
+                    entries.Add(new DemoEntry
+                    {
+                        Path = folder,
+                        FolderName = folderName,
+                        PackageName = displayName,
+                        DisplayName = SceneName(scene),
+                        Module = module,
+                        Version = version,
+                        Summary = BuildSceneSummary(displayName, version),
+                        FirstScenePath = scene,
+                        PreviewAssetPath = FirstExisting(textures, prefabs, assets, new[] { scene })
+                    });
+                }
+
+                return entries.ToArray();
             }
 
-            private static string BuildSummary(string version, int scenes, int prefabs, int assets)
+            private static string BuildSceneSummary(string packageName, string version)
+            {
+                List<string> parts = new List<string>();
+                parts.Add(packageName);
+                if (!string.IsNullOrEmpty(version)) parts.Add("v" + version);
+                parts.Add("scene");
+
+                return string.Join("  |  ", parts);
+            }
+
+            private static string BuildPackSummary(string version, int prefabs, int assets)
             {
                 List<string> parts = new List<string>();
                 if (!string.IsNullOrEmpty(version)) parts.Add("v" + version);
-                parts.Add(scenes == 1 ? "1 scene" : $"{scenes} scenes");
+                parts.Add("asset pack");
                 if (prefabs > 0) parts.Add(prefabs == 1 ? "1 prefab" : $"{prefabs} prefabs");
                 if (assets > 0) parts.Add(assets == 1 ? "1 asset" : $"{assets} assets");
 
                 return string.Join("  |  ", parts);
+            }
+
+            private static string SceneName(string scenePath)
+            {
+                string fileName = System.IO.Path.GetFileNameWithoutExtension(scenePath);
+                int underscore = fileName.IndexOf('_');
+
+                if (underscore >= 0 && underscore + 1 < fileName.Length && char.IsDigit(fileName[0]))
+                {
+                    fileName = fileName.Substring(underscore + 1);
+                }
+
+                return fileName.Replace('_', ' ');
             }
 
             private static string[] FindFiles(string folder, params string[] patterns)
