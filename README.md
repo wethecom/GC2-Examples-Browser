@@ -1,43 +1,66 @@
-# Stealth
+# Game Creator Example Browser
 
-A Unity stealth game project using Game Creator 2, with custom editor tooling for working with installed Game Creator demo packs.
+A Unity Editor tool for browsing the Game Creator demo/example packs installed in a project.
 
-## Game Creator Demo Browser
+The browser scans the local Game Creator installs folder dynamically, so it works even when each user has a different set of examples, skins, weapons, UI packs, or module demos installed.
 
-This project includes a custom Unity Editor window that dynamically lists demo packs installed under:
+## What It Does
+
+The Example Browser lists everything found under:
 
 ```text
 Assets/Plugins/GameCreator/Installs
 ```
 
-Open it from the Unity menu:
+It turns those folders into a colorful editor window with searchable, filterable cards. Each card shows the demo pack name, module, version, basic asset counts, and a best-effort preview when Unity can generate one.
+
+## Open The Window
+
+In Unity, use:
 
 ```text
 Game Creator > Demo Browser...
 ```
 
-The browser is designed for projects where different users may install different Game Creator examples, skins, weapons, UI packs, and module demos.
-
 ## Features
 
-- Dynamically scans installed demo folders at editor time.
-- Groups and filters demos by module, such as Behavior, Dialogue, Inventory, Melee, Shooter, Stats, and Quests.
-- Search by demo name, folder name, or module.
-- Shows colorful demo cards with version and asset counts.
-- Displays best-effort previews from textures, prefabs, assets, or scene thumbnails when Unity can provide one.
-- Opens the first scene found in a demo pack.
-- Pings or selects the demo folder in the Unity Project window.
-- Refreshes automatically when project assets change.
+- Dynamic discovery of installed Game Creator demo/example folders.
+- Module filter for packs such as Behavior, Dialogue, Inventory, Melee, Shooter, Stats, Quests, and more.
+- Search by display name, raw folder name, or module.
+- Colorful card layout built for quick scanning.
+- Best-effort previews from textures, prefabs, assets, or scene thumbnails.
+- Scene button to open the first `.unity` scene found in a pack.
+- Folder button to ping the install folder in the Project window.
+- Select button to select the install folder asset.
+- Refresh button plus automatic refresh when project assets change.
 
-## Tool Location
+## Folder Naming
 
-Main editor window:
+The browser expects the normal Game Creator install folder pattern:
+
+```text
+Module.Package@Version
+```
+
+Examples:
+
+```text
+Dialogue.Examples@1.3.13
+Shooter.Weapons@1.1.4
+Stats.UI@1.3.5
+```
+
+The module name comes from the text before the first dot. The version comes from the text after `@`.
+
+## Files
+
+Editor window:
 
 ```text
 Assets/Plugins/GameCreator/Packages/Core/Editor/Installs/Windows/Templates/DemoBrowserWindow.cs
 ```
 
-Unity metadata:
+Unity meta file:
 
 ```text
 Assets/Plugins/GameCreator/Packages/Core/Editor/Installs/Windows/Templates/DemoBrowserWindow.cs.meta
@@ -45,12 +68,12 @@ Assets/Plugins/GameCreator/Packages/Core/Editor/Installs/Windows/Templates/DemoB
 
 ## Requirements
 
-- Unity project with Game Creator 2 installed.
-- Demo packs installed under `Assets/Plugins/GameCreator/Installs`.
-- The tool runs in the Unity Editor only.
+- Unity Editor.
+- Game Creator 2 installed in the project.
+- Example/demo packs installed under `Assets/Plugins/GameCreator/Installs`.
 
-## Notes
+## Preview Notes
 
-Preview images are best effort. Some demo folders contain scenes or assets that Unity cannot render as a large preview thumbnail, so those cards may show a simple fallback preview area.
+Previews are best effort. Some folders only contain scenes or assets that Unity cannot render as large thumbnails, so the card may show a fallback preview area.
 
-When opening a demo scene, Unity will ask to save modified scenes first.
+Opening a scene uses Unity's normal scene workflow and prompts to save modified scenes first.
